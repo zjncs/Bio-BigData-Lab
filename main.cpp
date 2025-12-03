@@ -661,12 +661,12 @@ void cmdCheck_Click() {
     if (nErr > 0 || nSelfLoop > 0) {
         errMsg = TEXT("发现问题：\n");
         if (nErr > 0) {
-            errMsg += TEXT("• 负权边: ");
+            errMsg += TEXT("- 负权边: ");
             errMsg += Str(nErr);
             errMsg += TEXT(" 条\n");
         }
         if (nSelfLoop > 0) {
-            errMsg += TEXT("• 自环边: ");
+            errMsg += TEXT("- 自环边: ");
             errMsg += Str(nSelfLoop);
             errMsg += TEXT(" 条\n");
         }
