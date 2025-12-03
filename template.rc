@@ -1,0 +1,112 @@
+﻿// 增强版资源文件，优化布局和增加新功能
+#include <windows.h>
+#include <winres.h>
+
+101 DIALOGEX 0, 0, 460, 305
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX
+CAPTION "ex9Dijkstra 交互式最短路径分析 [增强版]"
+FONT 9, "Microsoft YaHei UI", 400, 0, 0x86
+BEGIN
+    // ---------------------------------------------------------
+    // 第一层：背景 GroupBox
+    // ---------------------------------------------------------
+    GROUPBOX        "数据录入控制台",1001,10,5,215,100
+    GROUPBOX        "网络拓扑数据表",2001,10,110,215,165
+    GROUPBOX        "算法与模式控制",3001,235,5,215,100
+    GROUPBOX        "路径分析与可视化",4001,235,110,215,165
+    
+    // ---------------------------------------------------------
+    // 第二层：交互控件
+    // ---------------------------------------------------------
+    
+    // 左上 - 数据录入（优化布局）
+    LTEXT           "起点 ID:",-1,20,22,35,12
+    EDITTEXT        1002,60,20,45,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "终点 ID:",-1,115,22,35,12
+    EDITTEXT        1003,155,20,45,14,ES_AUTOHSCROLL | ES_NUMBER
+    
+    LTEXT           "权重:",-1,20,42,30,12
+    EDITTEXT        1004,60,40,45,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "双向边",1009,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,115,42,50,12
+    
+    DEFPUSHBUTTON   "添加边\n(Enter)",1005,20,62,50,32,BS_MULTILINE | BS_CENTER
+    PUSHBUTTON      "编辑\n所选",1010,75,62,40,32,BS_MULTILINE | BS_CENTER
+    PUSHBUTTON      "删除\n所选",1006,120,62,40,32,BS_MULTILINE | BS_CENTER
+    PUSHBUTTON      "清空\n全部",1007,165,62,50,32,BS_MULTILINE | BS_CENTER
+    
+    // 左下 - 数据列表（增加按钮）
+    CONTROL         "",2002,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,20,125,195,120
+    
+    PUSHBUTTON      "自检",2003,20,250,35,16
+    PUSHBUTTON      "去重",2004,60,250,35,16
+    PUSHBUTTON      "导入",2007,100,250,35,16
+    PUSHBUTTON      "导出",2006,140,250,35,16
+    PUSHBUTTON      "粘贴",1008,180,250,35,16
+    
+    LTEXT           "共 0 条边",2005,20,270,195,12,SS_RIGHT
+    
+    // 右上 - 计算控制（优化布局）
+    LTEXT           "起点:",-1,245,22,25,12
+    EDITTEXT        3002,275,20,40,14,ES_AUTOHSCROLL | ES_NUMBER
+    PUSHBUTTON      "⇄",3008,320,20,20,14,BS_CENTER
+    LTEXT           "终点:",-1,345,22,25,12
+    EDITTEXT        3003,375,20,40,14,ES_AUTOHSCROLL | ES_NUMBER
+    PUSHBUTTON      "自动",3009,420,20,25,14,BS_CENTER
+    
+    CONTROL         "实时计算",3004,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,245,42,60,12
+    CONTROL         "显示标签",4006,"Button",BS_AUTOCHECKBOX | WS_TABSTOP | WS_VISIBLE,315,42,60,12
+    
+    LTEXT           "算法模式:",-1,245,60,45,12
+    COMBOBOX        3005,295,58,95,80,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    
+    PUSHBUTTON      "开始计算\n(F5)",3006,400,42,45,46,BS_MULTILINE | BS_CENTER
+    
+    CONTROL         "",3007,"msctls_progress32",WS_BORDER,245,92,195,10
+    
+    // 右下 - 结果显示（优化布局）
+    LTEXT           "最短距离:",-1,245,125,50,12
+    EDITTEXT        4002,300,123,90,16,ES_AUTOHSCROLL | ES_READONLY | ES_CENTER | WS_BORDER
+    PUSHBUTTON      "复制",4005,395,123,50,16
+    
+    LTEXT           "节点序列:",-1,245,145,45,12
+    LISTBOX         4003,245,157,65,105,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    
+    LTEXT           "路径可视化:",,-1,320,145,70,12
+    CONTROL         "",4004,"Static",SS_BLACKFRAME,320,157,125,105
+    
+    // ---------------------------------------------------------
+    // 底部状态栏（增加节点信息）
+    // ---------------------------------------------------------
+    LTEXT           "[系统就绪] 等待数据录入...",5001,10,280,300,12,SS_SUNKEN | WS_BORDER
+    LTEXT           "节点数: 0 | 边数: 0",5002,320,280,140,12,SS_SUNKEN | WS_BORDER | SS_RIGHT
+END
+
+// 右键菜单（增强）
+6001 MENU
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "复制选中行\tCtrl+C",          6002
+        MENUITEM "粘贴数据\tCtrl+V",            6003
+        MENUITEM SEPARATOR
+        MENUITEM "编辑选中行\tF2",              6005
+        MENUITEM "删除选中行\tDel",             6004
+        MENUITEM SEPARATOR
+        MENUITEM "全选\tCtrl+A",                6006
+    END
+END
+
+// 图标
+102 ICON "main.ico"
+
+// 加速键表（新增）
+103 ACCELERATORS
+BEGIN
+    VK_RETURN,  1005, VIRTKEY, NOINVERT
+    VK_F5,      3006, VIRTKEY, NOINVERT
+    VK_F2,      6005, VIRTKEY, NOINVERT
+    VK_DELETE,  6004, VIRTKEY, NOINVERT
+    "C",        6002, VIRTKEY, CONTROL, NOINVERT
+    "V",        6003, VIRTKEY, CONTROL, NOINVERT
+    "A",        6006, VIRTKEY, CONTROL, NOINVERT
+END
