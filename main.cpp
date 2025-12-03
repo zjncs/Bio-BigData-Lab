@@ -25,6 +25,12 @@ void DrawVisualPath(long* idNodes, long count);
 bool ValidateNodeInput(const tstring& sNode, long& value, LPCTSTR fieldName);
 void ExportData();
 void ImportData();
+void form1_Load();
+void cmdAdd_Click();
+void cmdEdit_Click();
+void cmdPaste_Click();
+void cmdDel_Click();
+void cmdClear_Click();
 
 // ==================== 增强的回调函数 ====================
 bool FunDjCalculatingCallBack(int iCycled, int iTotalCycleCurrent, long userData)
@@ -325,6 +331,203 @@ void TryRealTimeCalc() {
     if (g_bRealTimeCalc) PerformCalculation();
 }
 
+// ==================== 事件处理函数 ====================
+void form1_Load() {
+    CBControl lsv = form1.Control(ID_lsvDists);
+    lsv.ListViewAddColumn(TEXT("起点 ID"), 70);
+    lsv.ListViewAddColumn(TEXT("终点 ID"), 70);
+    lsv.ListViewAddColumn(TEXT("权重"), 60);
+    lsv.ListViewGridLinesSet(true);
+    lsv.ListViewFullRowSelectSet(true);
+
+    CBControl cbo = form1.Control(ID_cboMode);
+    cbo.AddItem(TEXT("单源最短路径 (Dijkstra)"));
+    cbo.AddItem(TEXT("全源路径矩阵 (Floyd)"));
+    cbo.ListIndexSet(0);
+
+    // 默认勾选显示标签
+    form1.Control(ID_chkShowLabels).ValueSet(1);
+    g_bShowLabels = true;
+
+    UpdateStatus(TEXT("[系统就绪] 等待数据录入..."));
+    RefreshCountLabel();
+    RefreshNodeInfo();
+
+    // 调整GroupBox层级
+    HWND hDlg = FindWindow(NULL, TEXT("ex9Dijkstra 交互式最短路径分析 [增强版]"));
+    if (hDlg)
+    {
+        HWND hGrp1 = GetDlgItem(hDlg, ID_grpInput);
+        HWND hGrp2 = GetDlgItem(hDlg, ID_grpList);
+        HWND hGrp3 = GetDlgItem(hDlg, ID_grpCalc);
+        HWND hGrp4 = GetDlgItem(hDlg, ID_grpResult);
+        SetWindowPos(hGrp1, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+        SetWindowPos(hGrp2, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+        SetWindowPos(hGrp3, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+        SetWindowPos(hGrp4, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+    }
+
+    DrawVisualPath(NULL, 0);  // 显示初始提示
+}
+
+void cmdAdd_Click() {
+    tstring sN1 = form1.Control(ID_txtNode1).Text();
+    tstring sN2 = form1.Control(ID_txtNode2).Text();
+    tstring sDist = form1.Control(ID_txtDist).Text();
+
+    long n1, n2, dist;
+    if (!ValidateNodeInput(sN1, n1, TEXT("起点ID"))) return;
+    if (!ValidateNodeInput(sN2, n2, TEXT("终点ID"))) return;
+
+    if (sDist.empty()) {
+        MsgBox(TEXT("请输入权重！"), TEXT("输入错误"), mb_OK, mb_IconExclamation);
+        return;
+    }
+
+    dist = (long)Val(sDist.c_str());
+    if (dist < 0) {
+        MsgBox(TEXT("本程序暂不支持负权边！"), TEXT("数据警告"), mb_OK, mb_IconExclamation);
+        return;
+    }
+
+    if (n1 == n2) {
+        MsgBox(TEXT("起点和终点不能相同！"), TEXT("输入错误"), mb_OK, mb_IconExclamation);
+        return;
+    }
+
+    CBControl lsv = form1.Control(ID_lsvDists);
+
+    // 添加边
+    long idx = lsv.AddItem(sN1.c_str());
+    lsv.ItemTextSet(idx, sN2.c_str(), 2);
+    lsv.ItemTextSet(idx, sDist.c_str(), 3);
+
+    // 如果勾选了双向边，添加反向边
+    bool isBidirectional = (form1.Control(ID_chkBidirectional).Value() == 1);
+    if (isBidirectional) {
+        idx = lsv.AddItem(sN2.c_str());
+        lsv.ItemTextSet(idx, sN1.c_str(), 2);
+        lsv.ItemTextSet(idx, sDist.c_str(), 3);
+    }
+
+    // 智能输入：将终点ID移到起点框
+    form1.Control(ID_txtNode1).TextSet(sN2.c_str());
+    form1.Control(ID_txtNode2).TextSet(TEXT(""));
+    form1.Control(ID_txtDist).TextSet(TEXT(""));
+    form1.Control(ID_txtNode2).SetFocus();
+
+    tstring msg = TEXT("✓ 添加成功");
+    if (isBidirectional) msg += TEXT(" (双向)");
+    UpdateStatus(msg.c_str());
+    RefreshCountLabel();
+    RefreshNodeInfo();
+    TryRealTimeCalc();
+}
+
+void cmdEdit_Click() {
+    CBControl lsv = form1.Control(ID_lsvDists);
+    long selIdx = lsv.ListIndex();
+
+    if (selIdx <= 0) {
+        MsgBox(TEXT("请先选中要编辑的行！"), TEXT("提示"), mb_OK, mb_IconInformation);
+        return;
+    }
+
+    // 将选中行数据填入输入框
+    form1.Control(ID_txtNode1).TextSet(lsv.ItemText(selIdx, 1));
+    form1.Control(ID_txtNode2).TextSet(lsv.ItemText(selIdx, 2));
+    form1.Control(ID_txtDist).TextSet(lsv.ItemText(selIdx, 3));
+
+    // 删除原行
+    lsv.RemoveItem(selIdx);
+
+    UpdateStatus(TEXT("请修改后点击【添加边】保存"));
+    form1.Control(ID_txtNode1).SetFocus();
+    RefreshCountLabel();
+    RefreshNodeInfo();
+}
+
+void cmdPaste_Click() {
+    tstring sClip = ClipboardGetText();
+    if (sClip.empty()) {
+        MsgBox(TEXT("剪贴板为空！"), TEXT("提示"), mb_OK, mb_IconInformation);
+        return;
+    }
+
+    TCHAR **pLines = NULL;
+    long nLines = Split(sClip.c_str(), pLines, TEXT("\n"), 1000);
+    CBControl lsv = form1.Control(ID_lsvDists);
+    long nAdded = 0;
+
+    for (long i = 1; i <= nLines; i++) {
+        TCHAR **pFields = NULL;
+        long nF = Split(pLines[i], pFields, TEXT("\t"));
+        if (nF < 3) nF = Split(pLines[i], pFields, TEXT(" "));
+        if (nF < 3) nF = Split(pLines[i], pFields, TEXT(","));
+        if (nF >= 3) {
+            // 验证数据有效性
+            long n1 = (long)Val(pFields[1]);
+            long n2 = (long)Val(pFields[2]);
+            long dist = (long)Val(pFields[3]);
+
+            if (n1 != 0 && n2 != 0 && n1 != n2 && dist >= 0) {
+                long idx = lsv.AddItem(pFields[1]);
+                lsv.ItemTextSet(idx, pFields[2], 2);
+                lsv.ItemTextSet(idx, pFields[3], 3);
+                nAdded++;
+            }
+        }
+    }
+
+    if (nAdded > 0) {
+        tstring sMsg = TEXT("批量导入完成，共导入 ");
+        sMsg += Str(nAdded);
+        sMsg += TEXT(" 条有效数据。");
+        MsgBox(sMsg.c_str(), TEXT("导入报告"), mb_OK, mb_IconInformation);
+
+        RefreshCountLabel();
+        RefreshNodeInfo();
+        TryRealTimeCalc();
+        UpdateStatus(TEXT("✓ 批量导入成功"));
+    } else {
+        MsgBox(TEXT("未导入任何有效数据！\n请检查数据格式：起点 终点 权重"), TEXT("提示"), mb_OK, mb_IconWarning);
+    }
+}
+
+void cmdDel_Click() {
+    CBControl lsv = form1.Control(ID_lsvDists);
+    long selIdx = lsv.ListIndex();
+
+    if (selIdx > 0) {
+        lsv.RemoveItem(selIdx);
+        UpdateStatus(TEXT("✓ 已删除选中行"));
+    } else {
+        MsgBox(TEXT("请先选中要删除的行！"), TEXT("提示"), mb_OK, mb_IconInformation);
+    }
+
+    RefreshCountLabel();
+    RefreshNodeInfo();
+    TryRealTimeCalc();
+}
+
+void cmdClear_Click() {
+    if (MsgBox(TEXT("确定清空所有数据？"), TEXT("确认"), mb_YesNo, mb_IconQuestion) == idYes) {
+        form1.Control(ID_lsvDists).ListClear();
+        form1.Control(ID_lstPath).ListClear();
+        form1.Control(ID_txtDistResu).TextSet(TEXT(""));
+        form1.Control(ID_txtNode1).TextSet(TEXT(""));
+        form1.Control(ID_txtNode2).TextSet(TEXT(""));
+        form1.Control(ID_txtDist).TextSet(TEXT(""));
+        form1.Control(ID_txtNodeCalc1).TextSet(TEXT(""));
+        form1.Control(ID_txtNodeCalc2).TextSet(TEXT(""));
+        DrawVisualPath(NULL, 0);
+        dj.Clear();
+        RefreshCountLabel();
+        RefreshNodeInfo();
+        UpdateStatus(TEXT("✓ 数据已清空"));
+    }
+}
+
 // ==================== 数据导入导出 ====================
 void ExportData() {
     TCHAR szFile[MAX_PATH] = {0};
@@ -425,7 +628,7 @@ void ImportData() {
         RefreshCountLabel();
         RefreshNodeInfo();
         TryRealTimeCalc();
-        UpdateStatus(TEXT("✓ 数据已清空"));
+        UpdateStatus(TEXT("✓ 数据已导入"));
     }
 }
 
@@ -687,458 +890,5 @@ int main() {
     form1.IconSet(IDI_ICON1);
     form1.Show();
     return 0;
-} 数据已导入"));
-    } else {
-        MsgBox(TEXT("未导入任何数据！\n请检查文件格式。"), TEXT("提示"), mb_OK, mb_IconWarning);
-    }
 }
 
-// ==================== 事件处理函数 ====================
-void form1_Load() {
-    CBControl lsv = form1.Control(ID_lsvDists);
-    lsv.ListViewAddColumn(TEXT("起点 ID"), 70); 
-    lsv.ListViewAddColumn(TEXT("终点 ID"), 70);
-    lsv.ListViewAddColumn(TEXT("权重"), 60);
-    lsv.ListViewGridLinesSet(true);      
-    lsv.ListViewFullRowSelectSet(true);  
-
-    CBControl cbo = form1.Control(ID_cboMode);
-    cbo.AddItem(TEXT("单源最短路径 (Dijkstra)")); 
-    cbo.AddItem(TEXT("全源路径矩阵 (Floyd)")); 
-    cbo.ListIndexSet(0); 
-
-    // 默认勾选显示标签
-    form1.Control(ID_chkShowLabels).ValueSet(1);
-    g_bShowLabels = true;
-
-    UpdateStatus(TEXT("[系统就绪] 等待数据录入..."));
-    RefreshCountLabel();
-    RefreshNodeInfo();
-
-    // 调整GroupBox层级
-    HWND hDlg = FindWindow(NULL, TEXT("ex9Dijkstra 交互式最短路径分析 [增强版]"));
-    if (hDlg) 
-    {
-        HWND hGrp1 = GetDlgItem(hDlg, ID_grpInput);
-        HWND hGrp2 = GetDlgItem(hDlg, ID_grpList);
-        HWND hGrp3 = GetDlgItem(hDlg, ID_grpCalc);
-        HWND hGrp4 = GetDlgItem(hDlg, ID_grpResult);
-        SetWindowPos(hGrp1, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-        SetWindowPos(hGrp2, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-        SetWindowPos(hGrp3, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-        SetWindowPos(hGrp4, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-    }
-    
-    DrawVisualPath(NULL, 0);  // 显示初始提示
-}
-
-void cmdAdd_Click() {
-    tstring sN1 = form1.Control(ID_txtNode1).Text();
-    tstring sN2 = form1.Control(ID_txtNode2).Text();
-    tstring sDist = form1.Control(ID_txtDist).Text();
-
-    long n1, n2, dist;
-    if (!ValidateNodeInput(sN1, n1, TEXT("起点ID"))) return;
-    if (!ValidateNodeInput(sN2, n2, TEXT("终点ID"))) return;
-    
-    if (sDist.empty()) {
-        MsgBox(TEXT("请输入权重！"), TEXT("输入错误"), mb_OK, mb_IconExclamation);
-        return;
-    }
-    
-    dist = (long)Val(sDist.c_str());
-    if (dist < 0) {
-        MsgBox(TEXT("本程序暂不支持负权边！"), TEXT("数据警告"), mb_OK, mb_IconExclamation);
-        return;
-    }
-    
-    if (n1 == n2) {
-        MsgBox(TEXT("起点和终点不能相同！"), TEXT("输入错误"), mb_OK, mb_IconExclamation);
-        return;
-    }
-
-    CBControl lsv = form1.Control(ID_lsvDists);
-    
-    // 添加边
-    long idx = lsv.AddItem(sN1.c_str());      
-    lsv.ItemTextSet(idx, sN2.c_str(), 2);   
-    lsv.ItemTextSet(idx, sDist.c_str(), 3); 
-    
-    // 如果勾选了双向边，添加反向边
-    bool isBidirectional = (form1.Control(ID_chkBidirectional).Value() == 1);
-    if (isBidirectional) {
-        idx = lsv.AddItem(sN2.c_str());
-        lsv.ItemTextSet(idx, sN1.c_str(), 2);
-        lsv.ItemTextSet(idx, sDist.c_str(), 3);
-    }
-
-    // 智能输入：将终点ID移到起点框
-    form1.Control(ID_txtNode1).TextSet(sN2.c_str()); 
-    form1.Control(ID_txtNode2).TextSet(TEXT(""));
-    form1.Control(ID_txtDist).TextSet(TEXT(""));
-    form1.Control(ID_txtNode2).SetFocus(); 
-
-    tstring msg = TEXT("✓ 添加成功");
-    if (isBidirectional) msg += TEXT(" (双向)");
-    UpdateStatus(msg.c_str());
-    RefreshCountLabel();
-    RefreshNodeInfo();
-    TryRealTimeCalc(); 
-}
-
-void cmdEdit_Click() {
-    CBControl lsv = form1.Control(ID_lsvDists);
-    long selIdx = lsv.ListIndex();
-    
-    if (selIdx <= 0) {
-        MsgBox(TEXT("请先选中要编辑的行！"), TEXT("提示"), mb_OK, mb_IconInformation);
-        return;
-    }
-    
-    // 将选中行数据填入输入框
-    form1.Control(ID_txtNode1).TextSet(lsv.ItemText(selIdx, 1));
-    form1.Control(ID_txtNode2).TextSet(lsv.ItemText(selIdx, 2));
-    form1.Control(ID_txtDist).TextSet(lsv.ItemText(selIdx, 3));
-    
-    // 删除原行
-    lsv.RemoveItem(selIdx);
-    
-    UpdateStatus(TEXT("请修改后点击【添加边】保存"));
-    form1.Control(ID_txtNode1).SetFocus();
-    RefreshCountLabel();
-    RefreshNodeInfo();
-}
-
-void cmdPaste_Click() {
-    tstring sClip = ClipboardGetText();
-    if (sClip.empty()) {
-        MsgBox(TEXT("剪贴板为空！"), TEXT("提示"), mb_OK, mb_IconInformation);
-        return;
-    }
-
-    TCHAR **pLines = NULL;
-    long nLines = Split(sClip.c_str(), pLines, TEXT("\n"), 1000); 
-    CBControl lsv = form1.Control(ID_lsvDists);
-    long nAdded = 0;
-
-    for (long i = 1; i <= nLines; i++) {
-        TCHAR **pFields = NULL;
-        long nF = Split(pLines[i], pFields, TEXT("\t")); 
-        if (nF < 3) nF = Split(pLines[i], pFields, TEXT(" "));  
-        if (nF < 3) nF = Split(pLines[i], pFields, TEXT(",")); 
-        if (nF >= 3) {
-            // 验证数据有效性
-            long n1 = (long)Val(pFields[1]);
-            long n2 = (long)Val(pFields[2]);
-            long dist = (long)Val(pFields[3]);
-            
-            if (n1 != 0 && n2 != 0 && n1 != n2 && dist >= 0) {
-                long idx = lsv.AddItem(pFields[1]); 
-                lsv.ItemTextSet(idx, pFields[2], 2); 
-                lsv.ItemTextSet(idx, pFields[3], 3); 
-                nAdded++;
-            }
-        }
-    }
-    
-    if (nAdded > 0) {
-        tstring sMsg = TEXT("批量导入完成，共导入 ");
-        sMsg += Str(nAdded);
-        sMsg += TEXT(" 条有效数据。");
-        MsgBox(sMsg.c_str(), TEXT("导入报告"), mb_OK, mb_IconInformation);
-        
-        RefreshCountLabel();
-        RefreshNodeInfo();
-        TryRealTimeCalc();
-        UpdateStatus(TEXT("✓ 批量导入成功"));
-    } else {
-        MsgBox(TEXT("未导入任何有效数据！\n请检查数据格式：起点 终点 权重"), TEXT("提示"), mb_OK, mb_IconWarning);
-    }
-}
-
-void cmdDel_Click() {
-    CBControl lsv = form1.Control(ID_lsvDists);
-    long selIdx = lsv.ListIndex();
-    
-    if (selIdx > 0) {
-        lsv.RemoveItem(selIdx);
-        UpdateStatus(TEXT("✓ 已删除选中行"));
-    } else {
-        MsgBox(TEXT("请先选中要删除的行！"), TEXT("提示"), mb_OK, mb_IconInformation);
-    }
-    
-    RefreshCountLabel();
-    RefreshNodeInfo();
-    TryRealTimeCalc();
-}
-
-void cmdClear_Click() {
-    if (MsgBox(TEXT("确定清空所有数据？"), TEXT("确认"), mb_YesNo, mb_IconQuestion) == idYes) {
-        form1.Control(ID_lsvDists).ListClear();
-        form1.Control(ID_lstPath).ListClear();
-        form1.Control(ID_txtDistResu).TextSet(TEXT(""));
-        form1.Control(ID_txtNode1).TextSet(TEXT(""));
-        form1.Control(ID_txtNode2).TextSet(TEXT(""));
-        form1.Control(ID_txtDist).TextSet(TEXT(""));
-        form1.Control(ID_txtNodeCalc1).TextSet(TEXT(""));
-        form1.Control(ID_txtNodeCalc2).TextSet(TEXT(""));
-        DrawVisualPath(NULL, 0);
-        dj.Clear();
-        RefreshCountLabel();
-        RefreshNodeInfo();
-        UpdateStatus(TEXT("✓ 数据已清空"));
-    }
-}
-
-void cmdCheck_Click() {
-    CBControl lsv = form1.Control(ID_lsvDists);
-    long count = lsv.ListCount();
-    
-    if (count == 0) {
-        MsgBox(TEXT("没有数据可检查！"), TEXT("提示"), mb_OK, mb_IconInformation);
-        return;
-    }
-    
-    long nErr = 0;
-    long nSelfLoop = 0;
-    tstring errMsg;
-    
-    for (long i = 1; i <= count; i++) {
-        long n1 = (long)Val(lsv.ItemText(i, 1));
-        long n2 = (long)Val(lsv.ItemText(i, 2));
-        long dist = (long)Val(lsv.ItemText(i, 3));
-        
-        if (dist < 0) {
-            nErr++;
-        }
-        if (n1 == n2) {
-            nSelfLoop++;
-        }
-    }
-    
-    if (nErr > 0 || nSelfLoop > 0) {
-        errMsg = TEXT("发现问题：\n");
-        if (nErr > 0) {
-            errMsg += TEXT("• 负权边: ");
-            errMsg += Str(nErr);
-            errMsg += TEXT(" 条\n");
-        }
-        if (nSelfLoop > 0) {
-            errMsg += TEXT("• 自环边: ");
-            errMsg += Str(nSelfLoop);
-            errMsg += TEXT(" 条\n");
-        }
-        MsgBox(errMsg.c_str(), TEXT("数据检查结果"), mb_OK, mb_IconWarning);
-        UpdateStatus(TEXT("⚠ 数据存在问题"));
-    } else {
-        MsgBox(TEXT("✓ 数据正常，未发现问题！"), TEXT("数据检查结果"), mb_OK, mb_IconInformation);
-        UpdateStatus(TEXT("✓ 数据检查通过"));
-    }
-}
-
-void cmdUnique_Click() {
-    CBControl lsv = form1.Control(ID_lsvDists);
-    long count = lsv.ListCount();
-    
-    if (count == 0) {
-        MsgBox(TEXT("没有数据！"), TEXT("提示"), mb_OK, mb_IconInformation);
-        return;
-    }
-    
-    long removed = 0;
-    for (long i = 1; i <= count; i++) {
-        for (long j = i + 1; j <= lsv.ListCount(); ) {
-            if (lstrcmp(lsv.ItemText(i, 1), lsv.ItemText(j, 1)) == 0 &&
-                lstrcmp(lsv.ItemText(i, 2), lsv.ItemText(j, 2)) == 0 &&
-                lstrcmp(lsv.ItemText(i, 3), lsv.ItemText(j, 3)) == 0) {
-                lsv.RemoveItem(j);
-                removed++;
-            } else j++;
-        }
-    }
-    
-    tstring sMsg;
-    if (removed > 0) {
-        sMsg = TEXT("✓ 去重完成，删除 ");
-        sMsg += Str(removed);
-        sMsg += TEXT(" 条重复数据");
-        MsgBox(sMsg.c_str(), TEXT("去重结果"), mb_OK, mb_IconInformation);
-    } else {
-        sMsg = TEXT("未发现重复数据");
-        MsgBox(sMsg.c_str(), TEXT("去重结果"), mb_OK, mb_IconInformation);
-    }
-    
-    UpdateStatus(sMsg.c_str());
-    RefreshCountLabel();
-    RefreshNodeInfo();
-}
-
-void cmdDo_Click() { 
-    PerformCalculation(); 
-}
-
-void chkRealTime_Click() {
-    g_bRealTimeCalc = (form1.Control(ID_chkRealTime).Value() == 1);
-    if (g_bRealTimeCalc) {
-        UpdateStatus(TEXT("✓ 实时计算已启用"));
-        PerformCalculation();
-    } else {
-        UpdateStatus(TEXT("实时计算已关闭"));
-    }
-}
-
-void chkShowLabels_Click() {
-    g_bShowLabels = (form1.Control(ID_chkShowLabels).Value() == 1);
-    // 重新绘制当前路径
-    CBControl lst = form1.Control(ID_lstPath);
-    if (lst.ListCount() > 0) {
-        long count = lst.ListCount();
-        long* nodes = new long[count];
-        for (long i = 0; i < count; i++) {
-            tstring item = lst.ItemText(i + 1);
-            size_t pos = item.find(TEXT("节点 "));
-            if (pos != tstring::npos) {
-                nodes[i] = (long)Val(item.substr(pos + 3).c_str());
-            }
-        }
-        DrawVisualPath(nodes, count);
-        delete[] nodes;
-    }
-}
-
-void cmdSwapNodes_Click() {
-    tstring s1 = form1.Control(ID_txtNodeCalc1).Text();
-    tstring s2 = form1.Control(ID_txtNodeCalc2).Text();
-    
-    form1.Control(ID_txtNodeCalc1).TextSet(s2.c_str());
-    form1.Control(ID_txtNodeCalc2).TextSet(s1.c_str());
-    
-    UpdateStatus(TEXT("✓ 起终点已交换"));
-    TryRealTimeCalc();
-}
-
-void cmdAutoDetect_Click() {
-    CBControl lsv = form1.Control(ID_lsvDists);
-    long count = lsv.ListCount();
-    
-    if (count == 0) {
-        MsgBox(TEXT("没有边数据！"), TEXT("提示"), mb_OK, mb_IconInformation);
-        return;
-    }
-    
-    form1.Control(ID_txtNodeCalc1).TextSet(lsv.ItemText(1, 1));
-    form1.Control(ID_txtNodeCalc2).TextSet(lsv.ItemText(1, 2));
-    
-    UpdateStatus(TEXT("✓ 已自动设置起终点"));
-    TryRealTimeCalc();
-}
-
-void cmdCopyResult_Click() {
-    tstring result = form1.Control(ID_txtDistResu).Text();
-    CBControl lst = form1.Control(ID_lstPath);
-    
-    if (result.empty() || result == TEXT("不可达")) {
-        MsgBox(TEXT("没有可复制的结果！"), TEXT("提示"), mb_OK, mb_IconInformation);
-        return;
-    }
-    
-    tstring copyText = TEXT("最短距离: ");
-    copyText += result;
-    copyText += TEXT("\n路径: ");
-    
-    for (long i = 1; i <= lst.ListCount(); i++) {
-        tstring item = lst.ItemText(i);
-        size_t pos = item.find(TEXT("节点 "));
-        if (pos != tstring::npos) {
-            if (i > 1) copyText += TEXT(" -> ");
-            copyText += item.substr(pos + 3);
-        }
-    }
-    
-    ClipboardSetText(copyText.c_str());
-    UpdateStatus(TEXT("✓ 结果已复制到剪贴板"));
-}
-
-void cmdExport_Click() {
-    ExportData();
-}
-
-void cmdImport_Click() {
-    ImportData();
-}
-
-void lsvDists_ClickRight() {
-    HMENU hMenu = LoadMenu(NULL, MAKEINTRESOURCE(IDM_POPUP));
-    if (!hMenu) return;
-    
-    HMENU hSubMenu = GetSubMenu(hMenu, 0);
-    POINT pt;
-    GetCursorPos(&pt);
-    
-    TrackPopupMenu(hSubMenu, TPM_LEFTALIGN | TPM_TOPALIGN, pt.x, pt.y, 0, 
-                   FindWindow(NULL, TEXT("ex9Dijkstra 交互式最短路径分析 [增强版]")), NULL);
-    
-    DestroyMenu(hMenu);
-}
-
-void mnuCopy_Click() {
-    CBControl lsv = form1.Control(ID_lsvDists);
-    long selIdx = lsv.ListIndex();
-    
-    if (selIdx > 0) {
-        tstring copyText = lsv.ItemText(selIdx, 1);
-        copyText += TEXT("\t");
-        copyText += lsv.ItemText(selIdx, 2);
-        copyText += TEXT("\t");
-        copyText += lsv.ItemText(selIdx, 3);
-        ClipboardSetText(copyText.c_str());
-        UpdateStatus(TEXT("✓ 已复制选中行"));
-    }
-}
-
-void mnuPaste_Click() {
-    cmdPaste_Click();
-}
-
-void mnuDelete_Click() {
-    cmdDel_Click();
-}
-
-void mnuEdit_Click() {
-    cmdEdit_Click();
-}
-
-void mnuSelectAll_Click() {
-    UpdateStatus(TEXT("ListView单选模式不支持全选"));
-}
-
-// ==================== 主函数 ====================
-int main() {
-    form1.EventAdd(0, eForm_Load, form1_Load);
-    form1.EventAdd(ID_cmdAdd, eCommandButton_Click, cmdAdd_Click);
-    form1.EventAdd(ID_cmdEdit, eCommandButton_Click, cmdEdit_Click);
-    form1.EventAdd(ID_cmdDel, eCommandButton_Click, cmdDel_Click);
-    form1.EventAdd(ID_cmdClear, eCommandButton_Click, cmdClear_Click);
-    form1.EventAdd(ID_cmdPaste, eCommandButton_Click, cmdPaste_Click); 
-    form1.EventAdd(ID_cmdCheck, eCommandButton_Click, cmdCheck_Click); 
-    form1.EventAdd(ID_cmdUnique, eCommandButton_Click, cmdUnique_Click); 
-    form1.EventAdd(ID_cmdExport, eCommandButton_Click, cmdExport_Click);
-    form1.EventAdd(ID_cmdImport, eCommandButton_Click, cmdImport_Click);
-    form1.EventAdd(ID_cmdDo, eCommandButton_Click, cmdDo_Click);
-    form1.EventAdd(ID_chkRealTime, eCommandButton_Click, chkRealTime_Click);
-    form1.EventAdd(ID_chkShowLabels, eCommandButton_Click, chkShowLabels_Click);
-    form1.EventAdd(ID_cmdSwapNodes, eCommandButton_Click, cmdSwapNodes_Click);
-    form1.EventAdd(ID_cmdAutoDetect, eCommandButton_Click, cmdAutoDetect_Click);
-    form1.EventAdd(ID_cmdCopyResult, eCommandButton_Click, cmdCopyResult_Click);
-    
-    form1.EventAdd(ID_lsvDists, eListView_ClickRight, lsvDists_ClickRight);
-    form1.EventAdd(IDM_COPY, eMenuItem_Click, mnuCopy_Click);
-    form1.EventAdd(IDM_PASTE, eMenuItem_Click, mnuPaste_Click);
-    form1.EventAdd(IDM_DELETE, eMenuItem_Click, mnuDelete_Click);
-    form1.EventAdd(IDM_EDIT, eMenuItem_Click, mnuEdit_Click);
-    form1.EventAdd(IDM_SELECT_ALL, eMenuItem_Click, mnuSelectAll_Click);
-    
-    form1.IconSet(IDI_ICON1);
-    form1.Show();
-    return 0;
-}
