@@ -1,0 +1,73 @@
+#include "resource.h"
+#include "windows.h"
+
+IDI_ICON1               ICON                    "main.ico"
+
+ID_mnuPop MENU
+BEGIN
+    POPUP "Shortcut"
+    BEGIN
+        MENUITEM "Copy Selected",                 ID_mnuPopCopy
+        MENUITEM "Paste Data",                    ID_mnuPopPaste
+    END
+END
+
+ID_form1 DIALOGEX 0, 0, 440, 285
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "ex9Dijkstra Shortest Path Analysis"
+FONT 9, "Microsoft YaHei UI", 400, 0, 0x86
+BEGIN
+    GROUPBOX        "Data Entry",ID_grpInput,10,5,205,90
+    GROUPBOX        "Network Data",ID_grpList,10,100,205,160
+    GROUPBOX        "Calculation",ID_grpCalc,225,5,205,90
+    GROUPBOX        "Result & Visualization",ID_grpResult,225,100,205,160
+
+    LTEXT           "Start:",IDC_STATIC,20,22,20,12
+    EDITTEXT        ID_txtNode1,45,20,40,14,ES_AUTOHSCROLL | WS_TABSTOP
+    LTEXT           "End:",IDC_STATIC,95,22,20,12
+    EDITTEXT        ID_txtNode2,120,20,40,14,ES_AUTOHSCROLL | WS_TABSTOP
+    LTEXT           "Dist:",IDC_STATIC,170,22,20,12
+    EDITTEXT        ID_txtDist,195,20,30,14,ES_AUTOHSCROLL | ES_NUMBER | WS_TABSTOP
+
+    DEFPUSHBUTTON   "Add",ID_cmdAdd,20,46,50,18
+    PUSHBUTTON      "Delete",ID_cmdDel,80,46,50,18
+    PUSHBUTTON      "Clear",ID_cmdClear,140,46,55,18
+    PUSHBUTTON      "Paste",ID_cmdPaste,140,70,65,16
+
+    CONTROL         "",ID_lsvDists,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,20,115,185,115
+    PUSHBUTTON      "Check",ID_cmdCheck,20,235,40,16
+    PUSHBUTTON      "Unique",ID_cmdUnique,65,235,40,16
+    LTEXT           "0 items",ID_lblCount,120,237,85,12,SS_RIGHT
+
+    LTEXT           "From:",IDC_STATIC,235,25,35,12
+    EDITTEXT        ID_txtNodeCalc1,275,22,40,14,ES_AUTOHSCROLL | WS_TABSTOP
+    LTEXT           "To:",IDC_STATIC,235,45,35,12
+    EDITTEXT        ID_txtNodeCalc2,275,42,40,14,ES_AUTOHSCROLL | WS_TABSTOP
+
+    PUSHBUTTON      "Start\nCalc",ID_cmdDo,330,20,80,38,BS_MULTILINE | BS_CENTER
+    
+    PUSHBUTTON      "View Global Matrix...",ID_cmdOpenMatrix,235,62,90,14
+
+    CONTROL         "",ID_progress,"msctls_progress32",WS_BORDER,235,80,175,8
+
+    LTEXT           "Shortest Distance:",IDC_STATIC,235,115,75,12
+    EDITTEXT        ID_txtDistResu,310,113,110,16,ES_AUTOHSCROLL | ES_READONLY | ES_CENTER | WS_BORDER
+
+    LTEXT           "Path Nodes:",IDC_STATIC,235,135,70,12
+    LISTBOX         ID_lstPath,235,147,60,100,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+
+    LTEXT           "Visual Path:",IDC_STATIC,305,135,70,12
+    CONTROL         "",ID_picCanvas,"Static",SS_BLACKFRAME,305,147,115,100
+
+    LTEXT           "Ready.",ID_lblStatus,10,268,420,12,SS_SUNKEN | WS_BORDER
+END
+
+ID_formMatrix DIALOGEX 0, 0, 400, 250
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Global Shortest Path Matrix"
+FONT 9, "Microsoft YaHei UI", 400, 0, 0x86
+BEGIN
+    LTEXT           "Table shows shortest distance between ANY two nodes.",IDC_STATIC,10,10,300,10
+    PUSHBUTTON      "Refresh",ID_btnRefreshMatrix,310,5,80,16
+    CONTROL         "",ID_lsvMatrix,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,10,25,380,215
+END

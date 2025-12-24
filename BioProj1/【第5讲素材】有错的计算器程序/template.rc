@@ -1,0 +1,129 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 中文(简体，中国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
+#pragma code_page(936)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+ID_form1 DIALOGEX 200, 100, 159, 157
+STYLE DS_SETFONT | DS_MODALFRAME | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "计算器"
+FONT 9, "宋体", 0, 0, 0x0
+BEGIN
+    EDITTEXT        ID_txtResu,5,5,145,20,ES_RIGHT | ES_AUTOHSCROLL | ES_READONLY | NOT WS_TABSTOP
+    PUSHBUTTON      "1",ID_cmd1,7,32,25,25
+    PUSHBUTTON      "2",ID_cmd2,37,32,25,25
+    PUSHBUTTON      "3",ID_cmd3,67,32,25,25
+    PUSHBUTTON      "4",ID_cmd4,7,62,25,25
+    PUSHBUTTON      "5",ID_cmd5,37,62,25,25
+    PUSHBUTTON      "6",ID_cmd6,67,62,25,25
+    PUSHBUTTON      "7",ID_cmd7,7,92,25,25
+    PUSHBUTTON      "8",ID_cmd8,37,92,25,25
+    PUSHBUTTON      "9",ID_cmd9,67,92,25,25
+    PUSHBUTTON      "0",ID_cmd0,7,122,25,25
+    PUSHBUTTON      ".",ID_cmdDot,37,122,25,25
+    PUSHBUTTON      "+/-",ID_cmdSign,67,122,25,25
+    PUSHBUTTON      "＋",ID_cmdAdd,97,32,25,25
+    PUSHBUTTON      "－",ID_cmdMinus,97,62,25,25
+    PUSHBUTTON      "×",ID_cmdMul,97,92,25,25
+    PUSHBUTTON      "÷",ID_cmdDiv,97,122,25,25
+    PUSHBUTTON      "清除",ID_cmdClear,127,32,25,85
+    PUSHBUTTON      "=",ID_cmdEq,127,122,25,25
+    GROUPBOX        "",IDC_STATIC,5,25,90,125
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    ID_form1, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 152
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 150
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// RT_MANIFEST
+//
+
+1                       RT_MANIFEST             "XpStyles.exe.manifest"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_ICON1               ICON                    "main.ico"
+#endif    // 中文(简体，中国) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

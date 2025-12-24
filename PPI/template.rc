@@ -1,0 +1,66 @@
+// PPI.rc 资源脚本源码
+#include "resource.h"
+#include "windows.h"
+#include "commctrl.h" // 包含通用控件定义（如进度条）
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// 图标 (Icon)
+//
+// IDI_ICON1 图标必须存在于项目目录下
+IDI_ICON1               ICON                    "main.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// 对话框 (Dialog)
+//
+// ID_form1 是主窗体的 ID
+// 坐标单位是 DLU (Dialog Logic Units)，不是像素
+ID_form1 DIALOGEX 0, 0, 360, 120
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX
+CAPTION "蛋白-蛋白相互作用网络分析"  // 窗体标题 [cite: 6]
+FONT 9, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    // -----------------------------------------------------------
+    // 第一行：PPI数据文件选择
+    // -----------------------------------------------------------
+    // 静态文本: "PPI数据文件:"
+    LTEXT           "PPI数据文件:",IDC_STATIC,10,15,50,8
+    
+    // 下拉框 (ID_cboPPIFile) [cite: 135]
+    // CBS_DROPDOWNLIST 表示只选不输，WS_VSCROLL 表示带垂直滚动条
+    COMBOBOX        ID_cboPPIFile,65,12,225,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    
+    // 按钮: "浏览..." (ID_cmdBrowse) [cite: 136]
+    PUSHBUTTON      "浏览...",ID_cmdBrowse,300,12,50,14
+
+    // -----------------------------------------------------------
+    // 第二行：物种ID选择
+    // -----------------------------------------------------------
+    // 静态文本: "提取物种ID:"
+    LTEXT           "提取物种ID:",IDC_STATIC,10,38,50,8
+    
+    // 下拉框 (ID_cboTaxIDs) [cite: 137]
+    COMBOBOX        ID_cboTaxIDs,65,35,225,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    
+    // 按钮: "提取到数据库" (ID_cmdExtractTaxID) [cite: 138]
+    PUSHBUTTON      "提取到数据库",ID_cmdExtractTaxID,300,35,50,14
+
+    // -----------------------------------------------------------
+    // 底部区域：状态显示和进度条
+    // -----------------------------------------------------------
+    // 静态文本 (ID_lblStatus) [cite: 140]
+    // 初始内容设为 "Ready."
+    LTEXT           "Ready.",ID_lblStatus,10,80,220,8
+    
+    // 进度条 (ID_pro1) [cite: 139]
+    // 类名必须是 "msctls_progress32"
+    CONTROL         "",ID_pro1,"msctls_progress32",WS_BORDER,240,78,110,12
+END
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Manifest (用于启用 XP/Win7 视觉风格，可选)
+//
+// 1 RT_MANIFEST "PPI.manifest" 
+// (如果项目包含 manifest 文件，取消上面一行的注释)
