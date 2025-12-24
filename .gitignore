@@ -1,0 +1,28 @@
+# Visual Studio workspace settings
+**/.vs/
+*.suo
+*.vcxproj.user
+*.opensdf
+*.sdf
+*.VC.opendb
+*.VC.db
+*.ipch
+
+# Build artifacts
+**/Debug/
+*.obj
+*.pdb
+*.idb
+*.tlog
+*.ilk
+*.pch
+*.log
+*.lastbuildstate
+*.res
+
+# Generated resources
+*.aps
+*.cache
+*.tmp
+*.laccdb
+**/enc_temp_folder/
